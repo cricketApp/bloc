@@ -38,31 +38,39 @@ void main() {
   late TodosRepository todosRepository;
 
   group('TodosOverviewPage', () {
+    late MockNavigator navigator;
+    late MockTodosOverviewBloc todosOverviewBloc;
+
     setUp(() {
+      navigator = MockNavigator();
+      when(() => navigator.push(any())).thenAnswer((_) async => null);
+
+      todosOverviewBloc = MockTodosOverviewBloc();
+
       todosRepository = MockTodosRepository();
       when(todosRepository.getTodos).thenAnswer((_) => const Stream.empty());
     });
 
-    testWidgets('renders TodosOverviewView', (tester) async {
-      await tester.pumpApp(
-        const TodosOverviewPage(),
-        todosRepository: todosRepository,
-      );
+    Widget buildSubject() {
+      return MockNavigatorProvider(
+          navigator: navigator,
+          child: BlocProvider.value(
+            value: todosOverviewBloc,
+            child: const TodosOverviewView(),
+          ));
+    }
 
-      expect(find.byType(TodosOverviewView), findsOneWidget);
+    testWidgets('renders TodosOverviewView', (tester) async {
+      await tester.pumpApp(buildSubject(), todosRepository: todosRepository);
+
+      expect(find.byType(TodosOverviewPage), findsOneWidget);
     });
 
-    testWidgets(
-      'subscribes to todos from repository on initialization',
-      (tester) async {
-        await tester.pumpApp(
-          const TodosOverviewPage(),
-          todosRepository: todosRepository,
-        );
-
-        verify(() => todosRepository.getTodos()).called(1);
-      },
-    );
+    testWidgets('subscribes to todos from repository initialization',
+            (tester) async {
+          await tester.pumpApp(buildSubject(), todosRepository: todosRepository);
+          verify(() => todosRepository.getTodos()).called(1);
+        });
   });
 
   group('TodosOverviewView', () {
